@@ -1,0 +1,148 @@
+
+Rate limiting is an essential security measure to protect against brute force attacks. You can implement rate limiting for login attempts using libraries like Bucket4j in Java or using Spring Security's advanced configurations. Here's how to implement rate limiting for login attempts in your Spring Boot application:
+
+Implementation Using In-Memory Bucket4j
+Step 1 : Add Bucket4j Dependency Add the following dependency to your pom.xml:
+
+<dependency>
+    <groupId>com.github.vladimir-bukhtoyarov</groupId>
+    <artifactId>bucket4j-core</artifactId>
+    <version>8.3.0</version>
+</dependency>
+
+Step 2 : Create a Rate Limiter Service
+
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.Refill;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Service
+public class RateLimiterService {
+
+    private final ConcurrentHashMap<String, Bucket> bucketCache = new ConcurrentHashMap<>();
+
+    public Bucket resolveBucket(String key) {
+        return bucketCache.computeIfAbsent(key, this::newBucket);
+    }
+
+    private Bucket newBucket(String key) {
+        Bandwidth limit = Bandwidth.classic(5, Refill.greedy(5, Duration.ofMinutes(1))); // 5 attempts per minute
+        return Bucket.builder().addLimit(limit).build();
+    }
+
+    public boolean isAllowed(String key) {
+        Bucket bucket = resolveBucket(key);
+        return bucket.tryConsume(1); // Attempt to consume one token
+    }
+}
+
+Step 3 : Integrate Rate Limiting in AuthController
+
+Inject the RateLimiterService and use it in the login endpoint:
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+@RestController
+@RequestMapping("/auth")
+public class AuthController {
+
+    private final RateLimiterService rateLimiterService;
+    private final CustomUserServiceImpl customUserServiceImpl;
+    private final JwtProvider jwtProvider;
+    private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    public AuthController(RateLimiterService rateLimiterService,
+                          CustomUserServiceImpl customUserServiceImpl,
+                          JwtProvider jwtProvider,
+                          PasswordEncoder passwordEncoder) {
+        this.rateLimiterService = rateLimiterService;
+        this.customUserServiceImpl = customUserServiceImpl;
+        this.jwtProvider = jwtProvider;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @PostMapping("/signin")
+    public ResponseEntity<AuthResponse> loginUserHandler(@RequestBody LoginRequest loginRequest) {
+        String userName = loginRequest.getEmail();
+
+        // Check rate limit
+        if (!rateLimiterService.isAllowed(userName)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(new AuthResponse(null, "Too many login attempts. Please try again later."));
+        }
+
+        // Authenticate user
+        Authentication authentication = authenticate(userName, loginRequest.getPassword());
+        String token = jwtProvider.generateToken(authentication.getName());
+
+        return ResponseEntity.ok(new AuthResponse(token, "Login Successful"));
+    }
+
+    private Authentication authenticate(String userName, String password) {
+        UserDetails userDetails = customUserServiceImpl.loadUserByUsername(userName);
+
+        if (userDetails == null) {
+            throw new BadCredentialsException("Invalid Username!");
+        }
+        if (!passwordEncoder.matches(password, userDetails.getPassword())) {
+            throw new BadCredentialsException("Invalid password!");
+        }
+
+        return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+    }
+}
+------------------------------
+Key Features of This Implementation
+Rate Limiting Logic:
+
+Each user (identified by their email or IP) has a unique token bucket.
+The bucket allows 5 tokens (login attempts) to be consumed per minute.
+If tokens are exhausted, further attempts are denied for the duration of the refill period.
+Global Rate Limiting:
+
+For global rate limiting (e.g., across all users/IPs), you can modify the bucketCache to use a single key for all requests.
+---------------------------------
+
+Advanced: Using IP-Based Rate Limiting
+If you want to implement IP-based rate limiting, you can extract the IP address of the request and use it as the key in the RateLimiterService:
+
+
+import javax.servlet.http.HttpServletRequest;
+
+@Service
+public class RateLimiterService {
+
+    private final ConcurrentHashMap<String, Bucket> bucketCache = new ConcurrentHashMap<>();
+
+    public Bucket resolveBucket(String ip) {
+        return bucketCache.computeIfAbsent(ip, this::newBucket);
+    }
+
+    private Bucket newBucket(String ip) {
+        Bandwidth limit = Bandwidth.classic(5, Refill.greedy(5, Duration.ofMinutes(1))); // 5 attempts per minute
+        return Bucket.builder().addLimit(limit).build();
+    }
+
+    public boolean isAllowed(HttpServletRequest request) {
+        String clientIP = request.getRemoteAddr();
+        Bucket bucket = resolveBucket(clientIP);
+        return bucket.tryConsume(1);
+    }
+}
+-------------------------
+In your controller:
+
+@PostMapping("/signin")
+public ResponseEntity<AuthResponse> loginUserHandler(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+    if (!rateLimiterService.isAllowed(request)) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new AuthResponse(null, "Too many login attempts. Please try again later."));
+    }
+    // Rest of the code
+}
+This implementation ensures your application is protected against brute force attacks by limiting login attempts while providing flexibility for scaling and customization. Let me know if you need additional help!

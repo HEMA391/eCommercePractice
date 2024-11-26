@@ -39,7 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 				String authorities = String.valueOf(claims.get("authorities"));
 				
 				List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList(authorities); //Converts the authorities string into a list of GrantedAuthority objects. These are used by Spring Security to determine access levels.
-				Authentication authentication = new UsernamePasswordAuthenticationToken(email, auths); //Creates an Authentication object with the user's email and authorities. Stores the Authentication in the SecurityContextHolder, which makes it accessible throughout the application.
+				Authentication authentication = new UsernamePasswordAuthenticationToken(email,null, auths); //Creates an Authentication object with the user's email and authorities. Stores the Authentication in the SecurityContextHolder, which makes it accessible throughout the application.
 				
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			}
