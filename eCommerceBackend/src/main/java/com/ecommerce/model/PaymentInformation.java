@@ -3,7 +3,9 @@ package com.ecommerce.model;
 import java.time.LocalDate;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
+@Embeddable
 public class PaymentInformation {
 	
 	@Column(name = "cardholder_name")

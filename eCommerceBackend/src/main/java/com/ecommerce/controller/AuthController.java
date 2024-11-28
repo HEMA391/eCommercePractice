@@ -1,6 +1,5 @@
 package com.ecommerce.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -33,8 +32,6 @@ public class AuthController {
 	private PasswordEncoder passwordEncoder;
 	private CustomUserServiceImpl customUserServiceImpl;
 	
-
-	@Autowired
 	public AuthController(UserRepository userRepository, JwtProvider jwtProvider, PasswordEncoder passwordEncoder,
 			CustomUserServiceImpl customUserServiceImpl) {
 		this.userRepository = userRepository;

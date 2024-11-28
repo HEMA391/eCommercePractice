@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -15,6 +16,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.JoinColumn;
 
 @Entity
@@ -23,18 +25,23 @@ public class User {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Long id;
 	
+	@Column(nullable = false)
 	private String firstName;
 	
+	@Column(nullable = false)
 	private String lastName;
 	
+	@Column(nullable = false)
 	private String password;
 	
+	@Column(nullable = false)
 	private String email;
 	
 	private String role;
 	
 	private String mobile;
 	
+	//Specifies that the user field in the related entity (e.g., Address) owns the relationship.
 	@OneToMany(mappedBy="user", cascade = CascadeType.ALL)
 	private List<Address> address = new ArrayList<>();
 	
@@ -51,7 +58,13 @@ public class User {
 	@OneToMany(mappedBy="user", cascade = CascadeType.ALL)
 	private List<Review> reviews = new ArrayList<>();
 
+	@Column(nullable = false, updatable = false)
 	private LocalDateTime createdAt;
+	
+	@PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now(); // Automatically sets created_at before persisting
+    }
 	
 	public User() {
 		
