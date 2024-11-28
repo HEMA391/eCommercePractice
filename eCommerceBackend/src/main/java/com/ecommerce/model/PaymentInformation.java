@@ -7,7 +7,9 @@ import jakarta.persistence.Embeddable;
 
 @Embeddable
 public class PaymentInformation {
-	
+	public PaymentInformation() {
+		// TODO Auto-generated constructor stub
+	}
 	@Column(name = "cardholder_name")
 	private String cardHolderName;
 

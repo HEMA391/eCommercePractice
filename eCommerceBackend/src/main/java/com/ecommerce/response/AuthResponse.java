@@ -1,39 +1,41 @@
 package com.ecommerce.response;
 
+import org.springframework.http.HttpStatus;
+
 public class AuthResponse {
-	private String jwt;
-	private String message;
-	public AuthResponse() {
-		// TODO Auto-generated constructor stub
-	}
-	public AuthResponse(String jwt, String message) {
-		super();
-		this.jwt = jwt;
-		this.message = message;
-	}
-	/**
-	 * @return the jwt
-	 */
-	public String getJwt() {
-		return jwt;
-	}
-	/**
-	 * @param jwt the jwt to set
-	 */
-	public void setJwt(String jwt) {
-		this.jwt = jwt;
-	}
-	/**
-	 * @return the message
-	 */
-	public String getMessage() {
-		return message;
-	}
-	/**
-	 * @param message the message to set
-	 */
-	public void setMessage(String message) {
-		this.message = message;
-	}
-	
+
+    private String status;  // Represents the status of the request (e.g., "success", "failure")
+    private String message; // Descriptive message (e.g., "Signup Failed", "Email already exists")
+    //private HttpStatus code; // HTTP status code (e.g., 200 for success, 400 for bad request)
+
+    // Default constructor
+    public AuthResponse() {
+        // No-arg constructor
+    }
+
+    // Parameterized constructor for setting status, message, and HTTP status code
+    public AuthResponse(String status, String message) {
+        this.status = status;
+        this.message = message;
+    }
+
+    // Getter for status
+    public String getStatus() {
+        return status;
+    }
+
+    // Setter for status
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    // Getter for message
+    public String getMessage() {
+        return message;
+    }
+
+    // Setter for message
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }
