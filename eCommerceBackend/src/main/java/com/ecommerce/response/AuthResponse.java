@@ -4,7 +4,7 @@ import org.springframework.http.HttpStatus;
 
 public class AuthResponse {
 
-    private String status;  // Represents the status of the request (e.g., "success", "failure")
+    private String jwt;  // Represents the status of the request (e.g., "success", "failure")
     private String message; // Descriptive message (e.g., "Signup Failed", "Email already exists")
     //private HttpStatus code; // HTTP status code (e.g., 200 for success, 400 for bad request)
 
@@ -14,19 +14,19 @@ public class AuthResponse {
     }
 
     // Parameterized constructor for setting status, message, and HTTP status code
-    public AuthResponse(String status, String message) {
-        this.status = status;
+    public AuthResponse(String jwt, String message) {
+        this.jwt = jwt;
         this.message = message;
     }
 
     // Getter for status
-    public String getStatus() {
-        return status;
+    public String getJwt() {
+        return jwt;
     }
 
     // Setter for status
-    public void setStatus(String status) {
-        this.status = status;
+    public void setJwt(String jwt) {
+        this.jwt = jwt;
     }
 
     // Getter for message

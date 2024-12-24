@@ -13,6 +13,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 
 @Service
@@ -21,11 +22,11 @@ public class JwtProvider {
 	private static final Logger logger = LoggerFactory.getLogger(JwtProvider.class);
 //JWT Token Generation: The JwtProvider is used effectively to generate tokens during signup and login.
 	SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
-	
+	//public static final String SECRET_KEY = System.getenv("JWT_SECRET");
 	public String generateToken(Authentication auth) {
 		String jwt = Jwts.builder()
 				.setIssuedAt(new Date())
-				.setExpiration(new Date(new Date().getTime()+86400000)) //24hrs = 86,400,000 milliseconds
+				.setExpiration(new Date(System.currentTimeMillis()+86400000)) //24hrs = 86,400,000 milliseconds
 				.claim("email", auth.getName())
 				.signWith(key)
 				.compact();
@@ -40,14 +41,14 @@ public class JwtProvider {
     }
 	public boolean validateToken(String jwt) {
         try {
-            parseToken(jwt); // If parsing succeeds, token is valid.
+        	Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwt); // If parsing succeeds, token is valid.
             return true;
         } catch (SignatureException e) {
             logger.error("Invalid JWT signature: {}", e.getMessage());
-            logger.debug("Invalid token: {}...", jwt.substring(0, 10));
+            logger.debug("Invalid token: {}...", jwt.substring(0,30));
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token format: {}", e.getMessage());
-            logger.debug("Invalid token: {}...", jwt.substring(0, 10));
+            logger.debug("Invalid token: {}...", jwt.substring(0, 30));
         } catch (ExpiredJwtException e) {
             logger.warn("Expired JWT token: {}", e.getMessage()); // Use warn level for expired tokens
         } catch (IllegalArgumentException e) {
@@ -57,10 +58,18 @@ public class JwtProvider {
         }
 	
 	public String getEmailFromToken(String jwt) {
-		jwt = jwt.substring(7);
-		Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwt).getBody();  //The claims represent the data stored in the JWT payload. The JWT is parsed and validated using the Jwts.parserBuilder() from the JJWT library. If the token is invalid or the signature doesn't match, an exception is thrown.
-		String email = String.valueOf(claims.get("email"));
-		return email;
+		try {
+		if (jwt.startsWith("Bearer ")) {
+            jwt = jwt.substring(7);
+        } else {
+            throw new IllegalArgumentException("Invalid token format");
+        }
+        Claims claims = parseToken(jwt);
+        System.out.println("Claims: " + claims);
+        return claims.get("email", String.class);
+		} catch (JwtException | IllegalArgumentException e) {
+	        throw new IllegalArgumentException("Invalid token format", e);
+	    }  
 	}
 	
 //	public boolean validateToken(String jwt) {

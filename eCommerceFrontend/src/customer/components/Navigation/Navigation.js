@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   Dialog,
   DialogBackdrop,
@@ -22,9 +22,12 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { navigation } from "./NavigationData";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Avatar, Button, Menu, MenuItem } from "@mui/material";
 import { deepPurple } from "@mui/material/colors";
+import AuthModal from "../../Auth/AuthModal";
+import { useDispatch, useSelector } from "react-redux";
+import { getUser, logout } from "../../../State/Auth/Action";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -34,10 +37,13 @@ export default function Navigation() {
   const [open, setOpen] = useState(false); //Mobile menu visibility (open)
   const navigate = useNavigate(); //Integration with Routing:   Uses useNavigation from React Router for programmatic navigation when interacting with category or item links.
 
-  const [OpenAuthModal, setOpenAuthModal] = useState(false); //Authentication modal (OpenAuthModal)
+  const [openAuthModal, setOpenAuthModal] = useState(false); //Authentication modal (OpenAuthModal)
   const [anchorEl, setAnchorEl] = useState(null); //User menu anchor (anchorEl)
   const openUserMenu = Boolean(anchorEl);
   const jwt = localStorage.getItem("jwt"); //Local storage is accessed to retrieve the JWT token for conditional rendering
+  const { auth } = useSelector((store) => store);
+  const dispatch = useDispatch();
+  const location = useLocation();
 
   const handleUserClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -53,11 +59,32 @@ export default function Navigation() {
 
   const handleClose = () => {
     setOpenAuthModal(false);
+    //navigate("/");
   };
 
   const handleCategoryClick = (category, section, item, close) => {
     navigate(`/${category.id}/${section.id}/${item.name}`);
     close();
+  };
+
+  useEffect(() => {
+    if (jwt) {
+      dispatch(getUser(jwt));
+    }
+  }, [jwt, auth.jwt]); // Avoid unnecessary dependencies like auth.jwt
+
+  useEffect(() => {
+    if (auth.user) {
+      handleClose();
+    }
+    if (location.pathname === "/login" || location.pathname === "/register") {
+      navigate(-1);
+    }
+  }, [auth.user]);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    handleCloseUserMenu();
   };
 
   return (
@@ -365,7 +392,7 @@ export default function Navigation() {
 
               <div className="ml-auto flex items-center">
                 <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
-                  {true ? (
+                  {auth.user?.firstName ? (
                     <div>
                       <Avatar
                         className="text-white"
@@ -379,7 +406,7 @@ export default function Navigation() {
                           cursoe: "pointer",
                         }}
                       >
-                        A
+                        {auth.user?.firstName[0].toUpperCase()}
                       </Avatar>
                       <Menu
                         id="basic-menu"
@@ -394,7 +421,7 @@ export default function Navigation() {
                         <MenuItem onClick={() => navigate("/account/order")}>
                           My Orders
                         </MenuItem>
-                        <MenuItem>Logout</MenuItem>
+                        <MenuItem onClick={handleLogout}>Logout</MenuItem>
                       </Menu>
                     </div>
                   ) : (
@@ -436,6 +463,8 @@ export default function Navigation() {
           </div>
         </nav>
       </header>
+
+      <AuthModal handleClose={handleClose} open={openAuthModal} />
     </div>
   );
 }

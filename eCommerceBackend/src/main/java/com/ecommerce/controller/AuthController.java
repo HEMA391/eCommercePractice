@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ecommerce.config.JwtProvider;
 import com.ecommerce.exception.UserException;
+import com.ecommerce.model.Cart;
 import com.ecommerce.model.User;
 import com.ecommerce.request.LoginRequest;
 import com.ecommerce.response.AuthResponse;
 import com.ecommerce.service.AuthService;
+import com.ecommerce.service.CartService;
 
 import jakarta.validation.Valid;
 
@@ -25,10 +27,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtProvider jwtProvider;
+    private final CartService cartService;
 
-    public AuthController(AuthService authService, JwtProvider jwtProvider) {
+    public AuthController(AuthService authService, JwtProvider jwtProvider, CartService cartService) {
         this.authService = authService;
         this.jwtProvider = jwtProvider;
+        this.cartService=  cartService;
     }
 
     @PostMapping("/signup")
@@ -36,7 +40,8 @@ public class AuthController {
     	try {
     	// Sign-up logic
     	User createdUser = authService.signUp(user);
-     
+    	Cart cart = cartService.createCart(createdUser);
+    	
         //Authenticate newly created user (auto-login)
         Authentication authentication = new UsernamePasswordAuthenticationToken(createdUser.getEmail(), createdUser.getPassword());
         System.out.println("Authentication Success: " + authentication.isAuthenticated());

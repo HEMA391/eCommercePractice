@@ -27,9 +27,11 @@ import jakarta.servlet.http.HttpServletRequest;
 public class AppConfig {
 	
 	private final CustomUserServiceImpl customUserServiceImpl;
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 	
-	public AppConfig(CustomUserServiceImpl customUserServiceImpl) {
+	public AppConfig(JwtAuthenticationFilter jwtAuthenticationFilter, CustomUserServiceImpl customUserServiceImpl) {
         this.customUserServiceImpl = customUserServiceImpl;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 //	@Bean
 //	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -67,7 +69,7 @@ public class AppConfig {
 	            )
 	            
 	            // Add your custom filters (update null placeholders as needed)... used to insert a custom filter into Spring Security's filter chain before a specified filter (in this case, BasicAuthenticationFilter).
-	            .addFilterBefore(new JwtAuthenticationFilter(), BasicAuthenticationFilter.class)
+	            .addFilterBefore(jwtAuthenticationFilter, BasicAuthenticationFilter.class)
 	            
 	            // Disable CSRF (not recommended unless necessary)
 	            .csrf(csrf -> csrf.disable())
@@ -76,9 +78,9 @@ public class AppConfig {
 	            .cors(cors -> cors.configurationSource(request -> {
 	                CorsConfiguration corsConfig = new CorsConfiguration();
 	                corsConfig.setAllowedOrigins(Arrays.asList("http://localhost:3000")); //Specifies which domains can access the backend. This allows only the frontend running on http://localhost:3000 to make requests.
-	                corsConfig.setAllowedMethods(Collections.singletonList("*")); // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.).
+	                corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE")); // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.).
 	                corsConfig.setAllowCredentials(true); //Indicates that cookies, authorization headers, or TLS certificates can be sent in requests.
-	                corsConfig.setAllowedHeaders(Collections.singletonList("*")); //Permits all HTTP headers in the request.
+	                corsConfig.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization")); //Permits all HTTP headers in the request.
 	                corsConfig.setExposedHeaders(Arrays.asList("Authorization"));  //Exposes specific headers (like Authorization) to the frontend.
 	                corsConfig.setMaxAge(3600L);  //Caches the CORS preflight request (OPTIONS) response for 1 hour.
 	                return corsConfig;

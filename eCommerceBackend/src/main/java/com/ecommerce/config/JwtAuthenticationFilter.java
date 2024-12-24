@@ -1,10 +1,13 @@
 package com.ecommerce.config;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -12,9 +15,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
@@ -22,29 +28,48 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter{
 //Spring guarantees that the OncePerRequestFilter is executed only once for a given request.
-	
-	@Autowired
-    private JwtProvider jwtProvider;
+	private static final Logger logger = LoggerFactory.getLogger(JwtProvider.class);
+	private final JwtProvider jwtProvider;
+
+    public JwtAuthenticationFilter(JwtProvider jwtProvider) {
+        this.jwtProvider = jwtProvider;
+    }
 	
 	@Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-
-        String jwt = extractToken(request);
-        if (jwt != null && jwtProvider.validateToken(jwt)) {
+	
+        String jwt = extractToken(request); // Extract the JWT from the request
+//        if (jwt != null && jwtProvider.validateToken(jwt)) {
+        if (jwt != null) {
             try {
-                Claims claims = jwtProvider.parseToken(jwt);
+                Claims claims = jwtProvider.parseToken(jwt); // Includes validation
                 String email = claims.get("email", String.class);
                 String authorities = claims.get("authorities", String.class);
 
-                List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList(authorities);
+                List<GrantedAuthority> auths = authorities != null
+                        ? AuthorityUtils.commaSeparatedStringToAuthorityList(authorities)
+                        : Collections.emptyList();
+                
+             // Create an authentication object and set it in the SecurityContext
                 Authentication authentication = new UsernamePasswordAuthenticationToken(email, null, auths);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (ExpiredJwtException e) {
+                logger.error("JWT token expired: {}", e.getMessage());
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
+                return;
+            } catch (JwtException e) {
+                logger.error("Invalid JWT token: {}", e.getMessage());
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+                return;
             } catch (Exception e) {
-                throw new BadCredentialsException("Invalid token", e);
+                logger.error("Unexpected error during token processing: {}", e.getMessage());
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unexpected error");
+                return;
             }
         }
 
