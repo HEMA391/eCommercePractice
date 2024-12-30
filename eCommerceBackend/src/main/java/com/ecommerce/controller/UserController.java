@@ -3,6 +3,7 @@ package com.ecommerce.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -19,6 +20,7 @@ import com.ecommerce.service.UserService;
 @RequestMapping("/api/users")
 public class UserController {
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+	
 	@Autowired
     private UserService userService;
 	
@@ -31,6 +33,12 @@ public class UserController {
 //            return ResponseEntity.notFound().build();
 //        }
 //    }
+	
+	@GetMapping("/profile")
+	public ResponseEntity<User> getUserProfileHandler(@RequestHeader("Authorization") String jwt) throws UserException{
+		User user = userService.findUserProfileByJwt(jwt);
+		return new ResponseEntity<User>(user, HttpStatus.ACCEPTED);
+	}
 	
 	@GetMapping("/profile")
     public ResponseEntity<User> getUserProfileByJwt(@RequestHeader("Authorization") String authorizationHeader) {
